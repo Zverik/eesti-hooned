@@ -1,0 +1,10 @@
+[project]
+name = "eesti-hooned"
+version = "0.1.0"
+description = "Scripts and a front-end to browse Estonian buildings data"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fiona>=1.10.1",
+    "pyproj>=3.7.1",
+]

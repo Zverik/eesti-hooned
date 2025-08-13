@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Eesti hoonete vanused</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@^5.6.2/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/pmtiles@4.1.0/dist/pmtiles.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@^5.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+        #legend {
+          position: absolute;
+          bottom: 10px;
+          left: 10px;
+          display: inline-block;
+          z-index: 999;
+          background-color: white;
+          border: 1px solid black;
+          border-radius: 5px;
+          padding: 5px 10px;
+        }
+    </style>
+  </head>
+  <body>
+    <div id="map">
+      <div id="legend">
+        <div><span style="color: rgba(192, 48, 48, 1)">&#9632;</span> enne 1918</div>
+        <div><span style="color: rgba(115, 45, 173, 1)">&#9632;</span> 1918—1943</div>
+        <div><span style="color: rgba(63, 63, 243, 1)">&#9632;</span> 1944—1990</div>
+        <div><span style="color: rgba(51, 169, 191, 1)">&#9632;</span> 1991—2014</div>
+        <div><span style="color: rgba(36, 135, 39, 1)">&#9632;</span> 2015 ja hiljem</div>
+      </div>
+    </div>
+    <script>
+      const map = new maplibregl.Map({
+        // Change initial locaion [longitude, latitude] and zoom here.
+        center: [24.73, 59.42],
+        zoom: 14,
+        minZoom: 10,
+        maxZoom: 20,
+
+        style: 'https://tiles.openfreemap.org/styles/positron',
+        container: 'map',
+        attributionControl: { compact: false },
+        hash: true,
+        dragRotate: false,
+        pitchWithRotate: false,
+      });
+
+      map.addControl(new maplibregl.NavigationControl({
+        showCompass: false
+      }));
+
+      map.addControl(new maplibregl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true
+      }));
+
+      const protocol = new pmtiles.Protocol();
+      maplibregl.addProtocol('pmtiles', protocol.tile);
+
+      const colors = [
+        "rgba(192, 48, 48, 1)",
+        "rgba(115, 45, 173, 1)",
+        "rgba(63, 63, 243, 1)",
+        "rgba(51, 169, 191, 1)",
+        "rgba(36, 135, 39, 1)"
+      ];
+
+      const years = [1918, 1944, 1991, 2015];
+      const layerBuildings = {
+        id: 'hooned',
+        source: 'hooned',
+        'source-layer': 'hooned',
+        type: 'fill',
+        paint: {
+          'fill-color': [
+            "step",
+            ["number", ["get", "year"]],
+            colors[0], years[0],
+            colors[1], years[1],
+            colors[2], years[2],
+            colors[3], years[3],
+            colors[4]
+          ],
+        }
+      };
+
+      const heights = [0, 5, 13, 24];
+      const layerHeights = {
+        id: 'korgus',
+        source: 'hooned',
+        'source-layer': 'hooned',
+        type: 'fill',
+        paint: {
+          'fill-color': [
+            "step",
+            ["number", ["get", "year"]],
+            "rgba(0, 0, 0, 1)",
+            heights[0],
+            "rgba(205, 20, 20, 1)",
+            heights[1],
+            "rgba(56, 200, 38, 1)",
+            heights[2],
+            "rgba(38, 90, 200, 1)",
+            heights[3],
+            "rgba(200, 133, 38, 1)"
+          ],
+        }
+      };
+
+      map.on('load', () => {
+        // Find the index of the first symbol layer in the map style
+        const layers = map.getStyle().layers;
+        let firstSymbolId;
+        for (let i = 0; i < layers.length; i++) {
+            if (layers[i].type === 'symbol') {
+                firstSymbolId = layers[i].id;
+                break;
+            }
+        }
+
+        map.addSource('hooned', {
+          'type': 'vector',
+          // TODO: point to the current directory (.)
+          'url': 'pmtiles://https://osmz.ee/hooned/hooned.pmtiles',
+        });
+        map.addLayer(layerBuildings, firstSymbolId);
+
+        map.on('click', 'hooned', (e) => {
+          if (map.getZoom() >= 14) {
+            const p = e.features[0].properties;
+            new maplibregl.Popup()
+              .setLngLat(e.lngLat)
+              .setHTML('' + p.type + '<br>Ehitatud a. ' + p.year + '<br>Kõrgus ' + p.height + ' m<br><br>' + p.addr)
+              .addTo(map);
+          }
+        });
+
+        map.on('mouseenter', 'hooned', () => {
+          if (map.getZoom() >= 14) {
+            map.getCanvas().style.cursor = 'pointer';
+          }
+        });
+
+        map.on('mouseleave', 'hooned', () => {
+          map.getCanvas().style.cursor = '';
+        });
+      });
+    </script>
+  </body>
+</html>
