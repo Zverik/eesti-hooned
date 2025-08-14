@@ -27,6 +27,9 @@ Finally, upload the contents of the `web` directory somewhere.
 ## Why the dates are wrong?
 
 We are using the "Esmase kasutuselevõtu aasta" field from the building register, which is not exactly the date it was first built.
+The hint can be translated as _"The year the building was completed or the year its first notice of use or occupancy permit
+was entered into the building register. The year of the building's initial commissioning is presumptive if it is derived
+from indirect sources, such as historical orthophotos and maps."_ So, it can be incorrect.
 Some examples we've found:
 
 * [Pihlaka 12i, Tallinn](https://livekluster.ehr.ee/ui/ehr/v1/building/101018040) is marked 1999, but before that it was a school building
@@ -36,6 +39,8 @@ Some examples we've found:
     at that place, but it's not split into visible buildings.
 * [Narva Castle](https://livekluster.ehr.ee/ui/ehr/v1/building/118008962) is marked 1986, despite being built way, way before that (around 1256).
     Same for buildings around it.
+* [Tallinna Raekoda](https://livekluster.ehr.ee/ui/ehr/v1/building/101036399) and many other buildings on the old town
+    don't have dates at all.
 
 ## Acknowledgments
 

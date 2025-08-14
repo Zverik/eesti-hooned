@@ -11,27 +11,72 @@
     <style>
         body { margin: 0; padding: 0; }
         html, body, #map { height: 100%; }
-        #legend {
+        #panel {
           position: absolute;
-          bottom: 10px;
+          bottom: 50px;
           left: 10px;
           display: inline-block;
           z-index: 999;
+        }
+        @media screen and (width >= 700px) { #panel { bottom: 10px; } }
+        .legend {
           background-color: white;
           border: 1px solid black;
           border-radius: 5px;
           padding: 5px 10px;
         }
+        .hidden { display: none; }
+        .sw-button {
+          display: inline-block;
+          background-color: #fff9;
+          border-radius: 5px;
+          padding: 5px 10px;
+          margin-top: 5px;
+          font-weight: bold;
+          cursor: pointer;
+        }
+        .selected {
+          border: 1px solid black;
+          background-color: white;
+          cursor: default;
+        }
+        .l-red { color: rgba(192, 48, 48, 1); }
+        .l-purple { color: rgba(115, 45, 173, 1); }
+        .l-blue { color: rgba(63, 63, 243, 1); }
+        .l-lightblue { color: rgba(51, 169, 191, 1); }
+        .l-green { color: rgba(36, 135, 39, 1); }
+        .l-gray { color: rgba(120, 120, 120, 1); }
+        .l-black { color: rgba(0, 0, 0, 1); }
     </style>
   </head>
   <body>
     <div id="map">
-      <div id="legend">
-        <div><span style="color: rgba(192, 48, 48, 1)">&#9632;</span> enne 1918</div>
-        <div><span style="color: rgba(115, 45, 173, 1)">&#9632;</span> 1918—1943</div>
-        <div><span style="color: rgba(63, 63, 243, 1)">&#9632;</span> 1944—1990</div>
-        <div><span style="color: rgba(51, 169, 191, 1)">&#9632;</span> 1991—2014</div>
-        <div><span style="color: rgba(36, 135, 39, 1)">&#9632;</span> 2015 ja hiljem</div>
+      <div id="panel">
+        <div class="legend" id="legend1">
+          <div><span class="l-red">&#9632;</span> enne 1918</div>
+          <div><span class="l-purple">&#9632;</span> 1918—1943</div>
+          <div><span class="l-blue">&#9632;</span> 1944—1990</div>
+          <div><span class="l-lightblue">&#9632;</span> 1991—2014</div>
+          <div><span class="l-green">&#9632;</span> 2015 ja hiljem</div>
+        </div>
+        <div class="legend hidden" id="legend2">
+          <div><span class="l-red">&#9632;</span> 1250—1799</div>
+          <div><span class="l-purple">&#9632;</span> 1800—1859</div>
+          <div><span class="l-blue">&#9632;</span> 1860—1917</div>
+          <div><span class="l-lightblue">&#9632;</span> 1918 ja hiljem</div>
+        </div>
+        <div class="legend hidden" id="legend3">
+          <div><span class="l-gray">&#9632;</span> pole andmeid</div>
+          <div><span class="l-gray">&#9632;</span> 0—4 m</div>
+          <div><span class="l-lightblue">&#9632;</span> 5—12 m</div>
+          <div><span class="l-blue">&#9632;</span> 13—23 m</div>
+          <div><span class="l-red">&#9632;</span> 24 m ja kõrgem</div>
+        </div>
+        <div id="switcher">
+          <div class="sw-button selected" id="mode1">Uus</div>
+          <div class="sw-button" id="mode2">Vana</div>
+          <div class="sw-button" id="mode3">Kõrgus</div>
+        </div>
       </div>
     </div>
     <script>
@@ -39,12 +84,12 @@
         // Change initial locaion [longitude, latitude] and zoom here.
         center: [24.73, 59.42],
         zoom: 14,
-        minZoom: 10,
+        minZoom: 8,
         maxZoom: 20,
 
         style: 'https://tiles.openfreemap.org/styles/positron',
         container: 'map',
-        attributionControl: { compact: false },
+        attributionControl: { compact: false, customAttribution: '<a href="https://github.com/Zverik/eesti-hooned">Made by Ilja Zverev</a>' },
         hash: true,
         dragRotate: false,
         pitchWithRotate: false,
@@ -64,13 +109,15 @@
       const protocol = new pmtiles.Protocol();
       maplibregl.addProtocol('pmtiles', protocol.tile);
 
+      // Graded similar.
       const colors = [
-        "rgba(192, 48, 48, 1)",
-        "rgba(115, 45, 173, 1)",
-        "rgba(63, 63, 243, 1)",
-        "rgba(51, 169, 191, 1)",
-        "rgba(36, 135, 39, 1)"
+        "rgba(192, 48, 48, 1)",  // 0 red
+        "rgba(115, 45, 173, 1)", // 1 purple
+        "rgba(63, 63, 243, 1)",  // 2 blue
+        "rgba(51, 169, 191, 1)", // 3 light blue
+        "rgba(36, 135, 39, 1)"   // 4 green
       ];
+      const gray = "rgba(150, 150, 150, 1)";
 
       const years = [1918, 1944, 1991, 2015];
       const layerBuildings = {
@@ -79,6 +126,12 @@
         'source-layer': 'hooned',
         type: 'fill',
         paint: {
+          'fill-outline-color': [
+            "step", ["zoom"],
+            'rgba(255, 255, 255, 0)',
+            15,
+            'rgba(255, 255, 255, 0.7)'
+          ],
           'fill-color': [
             "step",
             ["number", ["get", "year"]],
@@ -91,6 +144,30 @@
         }
       };
 
+      const years2 = [1800, 1860, 1918];
+      const layerOldBuildings = {
+        id: 'vana',
+        source: 'hooned',
+        'source-layer': 'hooned',
+        type: 'fill',
+        paint: {
+          'fill-outline-color': [
+            "step", ["zoom"],
+            'rgba(255, 255, 255, 0)',
+            15,
+            'rgba(255, 255, 255, 0.7)'
+          ],
+          'fill-color': [
+            "step",
+            ["number", ["get", "year"]],
+            colors[0], years2[0],
+            colors[1], years2[1],
+            colors[2], years2[2],
+            gray
+          ],
+        }
+      };
+
       const heights = [0, 5, 13, 24];
       const layerHeights = {
         id: 'korgus',
@@ -98,29 +175,33 @@
         'source-layer': 'hooned',
         type: 'fill',
         paint: {
+          'fill-outline-color': [
+            "step", ["zoom"],
+            'rgba(255, 255, 255, 0)',
+            15,
+            'rgba(255, 255, 255, 0.7)'
+          ],
           'fill-color': [
             "step",
-            ["number", ["get", "year"]],
-            "rgba(0, 0, 0, 1)",
-            heights[0],
-            "rgba(205, 20, 20, 1)",
-            heights[1],
-            "rgba(56, 200, 38, 1)",
-            heights[2],
-            "rgba(38, 90, 200, 1)",
-            heights[3],
-            "rgba(200, 133, 38, 1)"
+            ["number", ["coalesce", ["get", "height"], -1]],
+            gray,
+            heights[0], gray,
+            heights[1], colors[3],
+            heights[2], colors[2],
+            heights[3], colors[0],
           ],
         }
       };
 
+      const layers = [layerBuildings, layerOldBuildings, layerHeights];
+      var firstSymbolId = null;
+
       map.on('load', () => {
         // Find the index of the first symbol layer in the map style
-        const layers = map.getStyle().layers;
-        let firstSymbolId;
-        for (let i = 0; i < layers.length; i++) {
-            if (layers[i].type === 'symbol') {
-                firstSymbolId = layers[i].id;
+        const mapLayers = map.getStyle().layers;
+        for (let i = 0; i < mapLayers.length; i++) {
+            if (mapLayers[i].type === 'symbol') {
+                firstSymbolId = mapLayers[i].id;
                 break;
             }
         }
@@ -130,28 +211,51 @@
           // TODO: point to the current directory (.)
           'url': 'pmtiles://https://osmz.ee/hooned/hooned.pmtiles',
         });
-        map.addLayer(layerBuildings, firstSymbolId);
 
-        map.on('click', 'hooned', (e) => {
-          if (map.getZoom() >= 14) {
+        for (let i = 0; i < layers.length; i++) {
+          map.on('click', layers[i].id, (e) => {
             const p = e.features[0].properties;
-            new maplibregl.Popup()
-              .setLngLat(e.lngLat)
-              .setHTML('' + p.type + '<br>Ehitatud a. ' + p.year + '<br>Kõrgus ' + p.height + ' m<br><br>' + p.addr)
-              .addTo(map);
-          }
-        });
+            if (p && map.getZoom() >= 14) {
+              new maplibregl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML('<b>' + p.type + '</b><br>Ehitatud a. ' + p.year + '<br>Kõrgus ' + (p.height || '-') + ' m<br><br>' + p.addr)
+                .addTo(map);
+            }
+          });
 
-        map.on('mouseenter', 'hooned', () => {
-          if (map.getZoom() >= 14) {
-            map.getCanvas().style.cursor = 'pointer';
-          }
-        });
+          map.on('mouseenter', layers[i].id, () => {
+            if (map.getZoom() >= 14) {
+              map.getCanvas().style.cursor = 'pointer';
+            }
+          });
 
-        map.on('mouseleave', 'hooned', () => {
-          map.getCanvas().style.cursor = '';
-        });
+          map.on('mouseleave', layers[i].id, () => {
+            map.getCanvas().style.cursor = '';
+          });
+        }
+
+        setMode(1);
       });
+
+      let currentMode = 0;
+      function setMode(mode) {
+        if (mode == currentMode) return;
+        currentMode = mode;
+        for (let i = 1; i <= 3; i++) {
+          let btn = document.getElementById('mode' + i);
+          if (i == mode) btn.classList.add('selected'); else btn.classList.remove('selected');
+          let legend = document.getElementById('legend' + i);
+          if (i == mode) legend.classList.remove('hidden'); else legend.classList.add('hidden');
+          if (i == mode) map.addLayer(layers[i-1], firstSymbolId); else {
+            if (map.getLayer(layers[i-1].id))
+              map.removeLayer(layers[i-1].id);
+          }
+        }
+      }
+
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById('mode' + i).addEventListener('click', (e) => { setMode(i); });
+      }
     </script>
   </body>
 </html>
