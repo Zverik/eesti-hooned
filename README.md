@@ -33,7 +33,7 @@ from indirect sources, such as historical orthophotos and maps."_ So, it can be 
 Some examples we've found:
 
 * [Pihlaka 12i, Tallinn](https://livekluster.ehr.ee/ui/ehr/v1/building/101018040) is marked 1999, but before that it was a school building
-    raised somewhere in 1950s. In 1999 it was converted to a social house.
+    finished somewhere in 1950s. In 1999 it was converted to a social house.
 * [Tuukri 1b, Tallinn](https://livekluster.ehr.ee/ui/ehr/v1/building/120796837) is marked 1972, but it was completely raised after that,
     rebuilt from scratch in 2020. There is a [service building](https://livekluster.ehr.ee/ui/ehr/v1/building/220795174) from 2020
     at that place, but it's not split into visible buildings.
@@ -44,7 +44,7 @@ Some examples we've found:
 
 ## Acknowledgments
 
-This code is published under ISC licence by it author, Ilja Zverev.
+This code is published under ISC licence by its author, Ilja Zverev.
 
 Big thank you goes to Maa- ja Ruumiamet, whose geodata packages are over-comprehensive, containing links
 to every register imaginable. And for managing all those registers. And publishing them as open data.
